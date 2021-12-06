@@ -21,7 +21,7 @@ class DotsBoard:
         
     def get_index_positions(self, binary, element):
         ''' Returns the indexes of all occurrences of give element in
-        the list- listOfElements '''
+        the a list. This is used in the creation of symmetries in order to minimize computation '''
         self.board = list(binary)
         index_pos_list = []
         index_pos = 0
@@ -35,30 +35,32 @@ class DotsBoard:
                 index_pos += 1
             except ValueError as e:
                 break
-           
-    #Returns a string showing all played moves on a board    
+                
     def show_board(self):
+     """Returns a string showing all played moves on a board, the format of a will be in binary where a 0 represents an unplayed
+     move and a 1 represents a played move"""
         return ("".join(self.board))
     
-    #Takes and string input and can interpret it into the board environment
     def read_board(self,binary):
+     """Takes a string input and can read it into an exits Dots instance"""
         self.board = list(binary)
 
-    #Returns a copy of the current instance of the Dots Board 
     def copy(self):
+    """Returns a copy of the current instance of the Dots Board """
         result = Dots(self.r,self.c)
         result.read_board(self.show_board())
         return result
-        
-    #Returns which players turn it is    
+           
     def whose_turn(self):
+    """Returns which players turn it is """
         if self.turn == 0:
             return 1
         else:
             return 2
-    
-    #This plays a moves and checks whether the move scored any boxes to assign that to the correct player and change turns if needed.
+
     def play(self, move):
+    """Plays a moves and checks whether the move scored any boxes to assign that to the correct player and change turns. Moves are taken as a 
+    int input which references an index of a binary string of the board"""
         before = self.score()
         if self.board[move] =='0':
             self.board[move]='1'
@@ -77,24 +79,26 @@ class DotsBoard:
                     self.turn = 0
         else:
             pass
-
-    #Prints the dimensions row * column of the board    
+   
     def dimensions(self):
-        print(self.r,'*',self.c)
-
-    #Returns the number of moves remaining    
+    """Returns the dimensions, row * column, of the board"""
+        dimensions = str(self.r) + ' * ' + str(self.c)
+        return dimensions
+   
     def moves_remaining(self):
+    """Returns the number of moves remaining"""
         return self.lines-self.count()
     
     def count(self):
+    """Returns the number of played moves"""
         return sum(map(int,self.board))
     
-    #Returns the ored in which the moves were played
     def order(self):
+    """Returns the order which the moves were played. Will on display correctly when the game is played from start to finish without using .read_board()"""
         return self.orderofmoves
-
-    #Computes the score of a given position    
+   
     def score(self):
+    """Computes the score of a given position"""
         s = 0
         
         for i in self.topstick_indices():
@@ -105,8 +109,8 @@ class DotsBoard:
                         
         return s
 
-    #Return a list with all possible legal moves yet to be played
     def legal_moves(self):
+    """Returns a list with the index of all possible moves yet to be played"""
         legalmoves = []
         
         for i in range(len(self.board)):
@@ -115,17 +119,17 @@ class DotsBoard:
             else:
                 pass
         return legalmoves    
-    
-    #Returns Player 1 score
-    def player1(self):
+ 
+    def score_player_one(self):
+    """Returns player one's score, only work when the whole game has been played without using .read_board()"""
         return self.score1
     
-    #Returns Player 2 score
-    def player2(self):
+    def score_player_two(self):
+    """Returns player two's score, only work when the whole game has been played without using .read_board()"""
         return self.score2
-    
-    #Used in the GUI
+
     def topstick_indices(self):
+    """Used to produce the GUI"""
         indices = []
         
         for i in range(self.r):
@@ -135,8 +139,8 @@ class DotsBoard:
                 
         return indices
     
-    #Used in the GUI
     def horizontal(self):
+    """Used to produce the GUI"""
         indices = []
         
         for i in range(self.r+1):
@@ -146,8 +150,8 @@ class DotsBoard:
                 
         return indices
     
-    #Used in the GUI
     def lastinrow(self):
+    """Used to produce the GUI"""
         indices = []
         value = -1
         
@@ -161,8 +165,8 @@ class DotsBoard:
         
         return indices
     
-    #Used to flip the board horizonatlly
     def horizontal_flip(self):
+    """Produces a list of the index positions of the moves reordered after a horizontal flip of the board"""
         H = []
         x = self.c - 1
         while True:
@@ -180,9 +184,9 @@ class DotsBoard:
                 x -= 1
                 
             x += 2*self.c + 1
-
-    #Used to flip the board vertically        
+      
     def vertical_flip(self):
+    """Produces a list of the index positions of the moves reordered after a vertical flip of the board"""
         V = []
         x = self.lines - self.c
         
@@ -203,9 +207,9 @@ class DotsBoard:
                 y += 1
             
             x -= self.c
-
-    #Used to rotate the board        
+      
     def rotate(self):
+     """Produces a list of the index positions of the moves reordered after a rotation of the board"""
         R = []
         x = self.lines - 2*self.c - 1
         y = self.lines - self.c
@@ -227,21 +231,21 @@ class DotsBoard:
                 b -= 2*self.c + 1 
                 
             y +=1
-
-    #Used to produce a list with the original order of the board      
+     
     def nothing(self):
+    """Used to produce a list with the original index positions of the board"""
         N = []
         for i in range(self.lines):
             N.append(i)
             
         return N
-
-    #Used to combine multiple symmetries        
+     
     def combine(self, original, order):
+    """Used to combine two symmetries together"""
         return [original[i] for i in order]
-
-    #Used to print the board        
+  
     def GUI(self):
+    """Used to print the board in a more comprehensible fashion, the turn and score counters work best when the entire game was played with read.board()"""
         graph = ''
         
         for i in range(len(self.board)):
