@@ -92,21 +92,22 @@ class DotsPlayer:
         
     
     def reorder(self, original, order):
+    """This is used for the use of symmetries to reduce the amount of exploration necessary, combines two lists"""
          listed = tuple(original)
          result = [listed[i] for i in order]
          return ''.join(result)
     
     def reorder_move(self,move,order):
+    """Orders a move implementing a symmetrical equivalency such as a horizontal flip of the board"""
         return order.index(move)
     
     def best_move ( self, board ):
         """
-        Compute the best move, according to the current contents of the Q-table,
-        for the state of the given board.  Return the move (not its value).  So
+        Computes the best move according to the current contents of the Q-table,
+        for the state of the given board.  Returns the move (not its value).  So
         the return value for this function will be some item from the list
         self.legal_moves(board).  (If some things are tied for best move, you
-        can return a random one.)  Feel free to assume that the board is nxm,
-        the size this Player was created to be able to play.
+        can return a random one.)  
         """
 
         legal_moves = [ i for i in range(len(board)) if board[i] == '0' ]
@@ -134,9 +135,9 @@ class DotsPlayer:
  
     def learn_from_move ( self, old_state, move, new_state, reward, best_move ):
         """
-        This function can be called to tell this player that they just the given
-        move go from old_state to new_state and generate the given reward.  This
-        function should use this information to update this player's Q-table,
+        This method can be called to tell this player that they were given information
+        about a move from old_state to new_state and the generated reward.  This
+        method uses this information to update this player's Q-table,
         thus learning from the information given.
         """
         gamma = self.gamma if reward > 0 else -self.gamma
@@ -149,7 +150,8 @@ class DotsPlayer:
                 + self.alpha * ( reward )
     
     def learn_from_move_symm( self, old_state,move,new_state,reward,best_move):
-        
+    """This method is the same as .learn_from_move() but also adds the associated symmetries in a given board to update the Qtable at all 
+    relevant and related boards"""
         gamma = self.gamma if reward > 0 else -self.gamma
     
         if best_move is not None:
@@ -169,7 +171,7 @@ class DotsPlayer:
                         + self.alpha * (reward)
    
     def generate_multiple_experiences(self, num_games):
-
+    """This method uses pathos to call the create_experience() method multiple time and take advantage of multiple cores to generate experiences""" 
         def get_experiences ( x ):
             return self.create_experience( num_games // self.num_cores )
 
@@ -179,41 +181,31 @@ class DotsPlayer:
 
 
     def create_experience (self,num_games):
-        # a = Dots.DotsBoard(self.n,self.m)
-        experiences = [ ]
+    """This method generates num_games number of experience to train on wherein an experience is defines as a collection of a start_state
+    my_move, the new_state, a reward, and the best_move from the new_state"""
+        experiences = set()
         
         legal_boards = self.legal_boards
         
         for i in range(num_games):
             start_state = random.choice(legal_boards)
             
-            # a.read_board(start_state)
             my_move = self.random_move(start_state)
             
-            # a.play(my_move)
             new_state = self.movetable.loc[start_state,my_move]
             
             reward = self.rewards.loc[start_state,my_move]
             
             best_move = self.best_move(new_state)
                 
-            experiences.append( (start_state,my_move,new_state,reward,best_move) )
+            experiences.add( (start_state,my_move,new_state,reward,best_move) )
 
         return experiences
          
     def learn_from_games( self, num_games ):
-        """
-        Create for myself a new game (a new Dots instance) and play the role of
-        both players in that game until the game is over, calling
-        learn_from_move() after every single move, to learn from it.
-        Then do that again, and again, until I've played num_games.
-        """
-        
-        legal_boards = self.legal_boards
-        a = Dots.DotsBoard(self.n,self.m)
-        
+    """Generates num_games number of experiences and and calls the .learn_from_move() method to learn from them"""
         for i in range(num_games):
-            start_state = random.choice(legal_boards)
+            start_state = random.choice(self.legal_boards)
             
             my_move = self.random_move(start_state)
 
@@ -227,18 +219,10 @@ class DotsPlayer:
 
    
     def learn_from_games_symm( self, num_games ):
-        """
-        Create for myself a new game (a new Dots instance) and play the role of
-        both players in that game until the game is over, calling
-        learn_from_move_symm() after every single move, to learn from it.
-        Then do that again, and again, until I've played num_games.
-        """
-        
-        legal_boards = self.legal_boards
-        a = Dots.DotsBoard(self.n,self.m)
+        """Same as .learn_from_games() but calls learn_from_move_symm() instead"""
         
         for i in range(num_games):
-            start_state = random.choice(legal_boards)
+            start_state = random.choice(self.legal_boards)
             
             my_move = self.random_move(start_state)
 
@@ -251,30 +235,21 @@ class DotsPlayer:
             self.learn_from_move_symm(start_state,my_move,new_state,reward,best_move)
 
     def learn_from_games_mp(self,games):
-
-        legal_boards = self.legal_boards
-
-        if type(games) == int:
-            games = self.generate_multiple_experiences(games)
-
+    """Calls .learn_from_move() to learn from each experience given"""
         for arguments in games:
             self.learn_from_move(*arguments)
 
     def learn_from_games_mp_symm(self,games):
-
-        legal_boards = self.legal_boards
-
-        if type(games) == int:
-            games = self.generate_multiple_experiences(games)
-
+    """Same as .learn_from_games_mp() but calls .learn_from_move_symm() instead"""
         for arguments in games:
             self.learn_from_move_symm(*arguments)
            
     def is_fully_trained(self):
-        # This function makes a backup of p.qtable, then calls p.learn_from_games(1000),
-        # then checks to see if q_table_difference(backup,p.qtable) is very small.
-        # If so, it returns True--training didn't make any progress--this guy is fully trained.
-        # Otherwise, it returns False--training made progress--this guy is still learning.
+    """This function makes a backup of p.qtable, then calls p.learn_from_games(1000),
+    then checks to see if q_table_difference(backup,p.qtable) is very small.
+    If so, it returns True--training didn't make any progress--this guy is fully trained.
+    Otherwise, it returns False--training made progress--this guy is still learning. 
+    At the end of training it returns the number of experiences it used to train"""
         
         condition = True
         diff = 999
@@ -285,17 +260,11 @@ class DotsPlayer:
                 self.learn_from_games(1000)
                 self.count += 1000
                 diff = (table - self.qtable).abs().max().max()
-                
-        print( 'Training took', self.count//1000, 'steps or', self.count, 'experiences' )
 
         return self.count
 
     def is_fully_trained_symm(self):
-        # This function makes a backup of p.qtable, then calls p.learn_from_games(1000),
-        # then checks to see if q_table_difference(backup,p.qtable) is very small.
-        # If so, it returns True--training didn't make any progress--this guy is fully trained.
-        # Otherwise, it returns False--training made progress--this guy is still learning.
-        
+    """Same as is_fully_trained() but calls .learn_from_games_symm() instead to take advantage of symmetries"""
         condition = True
         diff = 999
         tolerance = 0.001
@@ -306,70 +275,43 @@ class DotsPlayer:
                 self.count += 1000
                 diff = (table - self.qtable).abs().max().max()
                 
-        print( 'Training took', self.count//1000, 'steps or', self.count, 'experiences' )
 
         return self.count
 
     def is_fully_trained_mp(self):
-        # This function makes a backup of p.qtable, then calls p.learn_from_games(1000),
-        # then checks to see if q_table_difference(backup,p.qtable) is very small.
-        # If so, it returns True--training didn't make any progress--this guy is fully trained.
-        # Otherwise, it returns False--training made progress--this guy is still learning.
-        
-        condition = True
+    """This method generates a batch of experiences to train on and then progressively trains through that batch determining if progress was made or not
+    it operates the same as .is_fully_trained() but takes advantage of multiprocessing"""
+    
         building_batch_size = 5000
         learning_batch_size = 1000
         diff = 999
         tolerance = 0.001
 
         while diff > tolerance:
-            # start_time = time.time()
             to_learn_from = self.generate_multiple_experiences(building_batch_size)
-            # end_time = time.time()
-            # print( f'Batch of {building_batch_size} built in {end_time-start_time}sec' )
             while len(to_learn_from) > 0 and diff > tolerance:
-                # print( f'We have {len(to_learn_from)} experiences ready to learn from' )
-                # start_time = time.time()
                 table = self.qtable.copy()
                 self.learn_from_games_mp(to_learn_from[:learning_batch_size])
                 to_learn_from = to_learn_from[learning_batch_size:]
                 self.count += learning_batch_size
                 diff = (table - self.qtable).abs().max().max()
-                # end_time = time.time()
-                # print( f'Learned from {learning_batch_size} built in {end_time-start_time}sec' )
-                
-        print( 'Training took', self.count//learning_batch_size, 'steps or', self.count, 'experiences' )
 
         return self.count
 
     def is_fully_trained_mp_symm(self):
-        # This function makes a backup of p.qtable, then calls p.learn_from_games(1000),
-        # then checks to see if q_table_difference(backup,p.qtable) is very small.
-        # If so, it returns True--training didn't make any progress--this guy is fully trained.
-        # Otherwise, it returns False--training made progress--this guy is still learning.
-        
-        condition = True
+    """The same as is_fully_trained_mp() but calls .learn_from_games_mp_symm() to take advantage of symmetries"""
         building_batch_size = 5000
         learning_batch_size = 1000
         diff = 999
         tolerance = 0.001
 
         while diff > tolerance:
-            # start_time = time.time()
             to_learn_from = self.generate_multiple_experiences(building_batch_size)
-            # end_time = time.time()
-            # print( f'Batch of {building_batch_size} built in {end_time-start_time}sec' )
             while len(to_learn_from) > 0 and diff > tolerance:
-                # print( f'We have {len(to_learn_from)} experiences ready to learn from' )
-                # start_time = time.time()
                 table = self.qtable.copy()
                 self.learn_from_games_mp_symm(to_learn_from[:learning_batch_size])
                 to_learn_from = to_learn_from[learning_batch_size:]
                 self.count += learning_batch_size
                 diff = (table - self.qtable).abs().max().max()
-                # end_time = time.time()
-                # print( f'Learned from {learning_batch_size} built in {end_time-start_time}sec' )
-                
-        print( 'Training took', self.count//learning_batch_size, 'steps or', self.count, 'experiences' )
 
         return self.count
