@@ -4,9 +4,6 @@ authors:
 - family-names: "Miranda"
   given-names: "Javier"
   orcid: "https://orcid.org/0000-0000-0000-0000"
-- family-names: "Miranda"
-  given-names: "Javier"
-  orcid: "https://orcid.org/0000-0000-0000-0000"
 title: "Capstone-Project"
 version: 1.0.0
 doi: 10.5281/zenodo.1234
